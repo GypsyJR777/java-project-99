@@ -3,7 +3,8 @@ services:
     name: java-project-99
     runtime: docker
     plan: free
-    healthCheckPath: /
+    dockerfilePath: ./Dockerfile
+    healthCheckPath: /welcome
     envVars:
       - key: JAVA_VERSION
         value: "21"
