@@ -5,6 +5,7 @@ import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
+import jakarta.persistence.Column;
 import java.time.LocalDateTime;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
@@ -17,17 +18,23 @@ public class User {
 	@GeneratedValue(strategy = GenerationType.IDENTITY)
 	private Long id;
 
+	@Column
 	private String firstName;
 
+	@Column
 	private String lastName;
 
+	@Column(nullable = false, unique = true)
 	private String email;
 
+	@Column(nullable = false)
 	private String password;
 
+	@Column(updatable = false)
 	@CreationTimestamp
 	private LocalDateTime createdAt;
 
+	@Column
 	@UpdateTimestamp
 	private LocalDateTime updatedAt;
 
