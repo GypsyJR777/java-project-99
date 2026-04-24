@@ -1,7 +1,9 @@
 plugins {
 	id 'java'
+	id 'checkstyle'
 	id 'org.springframework.boot' version '4.0.6'
 	id 'io.spring.dependency-management' version '1.1.7'
+	id 'org.sonarqube' version '7.1.0.6387'
 }
 
 group = 'hexlet.code'
@@ -26,4 +28,11 @@ dependencies {
 
 tasks.named('test') {
 	useJUnitPlatform()
+}
+
+sonar {
+	properties {
+		property("sonar.projectKey", "GypsyJR777_java-project-99")
+		property("sonar.organization", "gypsyjr777")
+	}
 }
