@@ -41,11 +41,6 @@ public class TaskService {
     }
 
     @Transactional(readOnly = true)
-    public List<TaskResponse> getAllTasks() {
-        return getTasks(null, null, null, null);
-    }
-
-    @Transactional(readOnly = true)
     public List<TaskResponse> getTasks(String titleCont, Long assigneeId, String status, Long labelId) {
         return taskRepository.findAll(buildFilter(titleCont, assigneeId, status, labelId))
             .stream()
@@ -61,35 +56,35 @@ public class TaskService {
     @Transactional
     public TaskResponse createTask(TaskCreateRequest request) {
         var task = new Task();
-        task.setName(request.getTitle());
-        task.setIndex(request.getIndex());
-        task.setDescription(request.getContent());
-        task.setTaskStatus(findTaskStatus(request.getStatus()));
-        task.setAssignee(findAssignee(request.getAssigneeId()));
-        task.setLabels(findLabels(request.getTaskLabelIds()));
+        task.setName(request.title());
+        task.setIndex(request.index());
+        task.setDescription(request.content());
+        task.setTaskStatus(findTaskStatus(request.status()));
+        task.setAssignee(findAssignee(request.assigneeId()));
+        task.setLabels(findLabels(request.taskLabelIds()));
         return toResponse(taskRepository.save(task));
     }
 
     @Transactional
     public TaskResponse updateTask(Long id, TaskUpdateRequest request) {
         var task = findTask(id);
-        if (request.getTitle() != null) {
-            task.setName(request.getTitle());
+        if (request.title() != null) {
+            task.setName(request.title());
         }
-        if (request.getIndex() != null) {
-            task.setIndex(request.getIndex());
+        if (request.index() != null) {
+            task.setIndex(request.index());
         }
-        if (request.getContent() != null) {
-            task.setDescription(request.getContent());
+        if (request.content() != null) {
+            task.setDescription(request.content());
         }
-        if (request.getStatus() != null) {
-            task.setTaskStatus(findTaskStatus(request.getStatus()));
+        if (request.status() != null) {
+            task.setTaskStatus(findTaskStatus(request.status()));
         }
-        if (request.getAssigneeId() != null) {
-            task.setAssignee(findAssignee(request.getAssigneeId()));
+        if (request.assigneeId() != null) {
+            task.setAssignee(findAssignee(request.assigneeId()));
         }
-        if (request.getTaskLabelIds() != null) {
-            task.setLabels(findLabels(request.getTaskLabelIds()));
+        if (request.taskLabelIds() != null) {
+            task.setLabels(findLabels(request.taskLabelIds()));
         }
         return toResponse(taskRepository.save(task));
     }
@@ -188,15 +183,15 @@ public class TaskService {
             .map(Label::getId)
             .sorted()
             .toList();
-        var response = new TaskResponse();
-        response.setId(task.getId());
-        response.setIndex(task.getIndex());
-        response.setCreatedAt(task.getCreatedAt() == null ? null : task.getCreatedAt().toLocalDate());
-        response.setAssigneeId(assignee == null ? null : assignee.getId());
-        response.setTitle(task.getName());
-        response.setContent(task.getDescription());
-        response.setStatus(taskStatus.getSlug());
-        response.setTaskLabelIds(taskLabelIds);
-        return response;
+        return new TaskResponse(
+            task.getId(),
+            task.getIndex(),
+            task.getCreatedAt() == null ? null : task.getCreatedAt().toLocalDate(),
+            assignee == null ? null : assignee.getId(),
+            task.getName(),
+            task.getDescription(),
+            taskStatus.getSlug(),
+            taskLabelIds
+        );
     }
 }

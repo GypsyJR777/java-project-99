@@ -23,16 +23,11 @@ import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMock
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.MediaType;
 import org.springframework.test.annotation.DirtiesContext;
-import org.springframework.test.web.servlet.MockMvc;
-import org.springframework.test.web.servlet.MvcResult;
 
 @SpringBootTest
 @AutoConfigureMockMvc
 @DirtiesContext(classMode = DirtiesContext.ClassMode.AFTER_EACH_TEST_METHOD)
-class TaskControllerTest {
-
-    @Autowired
-    private MockMvc mockMvc;
+class TaskControllerTest extends ControllerTestSupport {
 
     @Autowired
     private TaskRepository taskRepository;
@@ -64,15 +59,12 @@ class TaskControllerTest {
 
     @Test
     void createsTask() throws Exception {
-        var token = loginAs("hexlet@example.com", "qwerty");
+        var token = adminToken();
         var admin = userRepository.findByEmail("hexlet@example.com").orElseThrow();
         var feature = labelRepository.findByName("feature").orElseThrow();
         var bug = labelRepository.findByName("bug").orElseThrow();
 
-        mockMvc.perform(post("/api/tasks")
-                .header("Authorization", bearer(token))
-                .contentType(MediaType.APPLICATION_JSON)
-                .content("""
+        performJson(post("/api/tasks"), token, """
                     {
                       "index": 12,
                       "assignee_id": %d,
@@ -81,7 +73,7 @@ class TaskControllerTest {
                       "status": "draft",
                       "taskLabelIds": [%d, %d]
                     }
-                    """.formatted(admin.getId(), feature.getId(), bug.getId())))
+                    """.formatted(admin.getId(), feature.getId(), bug.getId()))
             .andExpect(status().isCreated())
             .andExpect(jsonPath("$.id").isNumber())
             .andExpect(jsonPath("$.index").value(12))
@@ -96,7 +88,7 @@ class TaskControllerTest {
             )))
             .andExpect(jsonPath("$.createdAt").exists());
 
-        var task = taskRepository.findAll().get(0);
+        var task = taskRepository.findAll().getFirst();
         assertThat(task.getName()).isEqualTo("Test title");
         assertThat(task.getDescription()).isEqualTo("Test content");
         assertThat(task.getTaskStatus().getSlug()).isEqualTo("draft");
@@ -107,12 +99,11 @@ class TaskControllerTest {
 
     @Test
     void getsTaskById() throws Exception {
-        var token = loginAs("hexlet@example.com", "qwerty");
+        var token = adminToken();
         var admin = userRepository.findByEmail("hexlet@example.com").orElseThrow();
         var savedTask = saveTask("Task 1", "Description of task 1", 3140, "to_be_fixed", admin.getId());
 
-        mockMvc.perform(get("/api/tasks/{id}", savedTask.getId())
-                .header("Authorization", bearer(token)))
+        performAuthorized(get("/api/tasks/{id}", savedTask.getId()), token)
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.id").value(savedTask.getId()))
             .andExpect(jsonPath("$.index").value(3140))
@@ -125,12 +116,12 @@ class TaskControllerTest {
 
     @Test
     void getsTasksList() throws Exception {
-        var token = loginAs("hexlet@example.com", "qwerty");
+        var token = adminToken();
         var admin = userRepository.findByEmail("hexlet@example.com").orElseThrow();
         saveTask("Task 1", "Description of task 1", 3140, "to_be_fixed", admin.getId());
         saveTask("Task 2", "Description of task 2", 3161, "to_review", admin.getId());
 
-        mockMvc.perform(get("/api/tasks").header("Authorization", bearer(token)))
+        performAuthorized(get("/api/tasks"), token)
             .andExpect(status().isOk())
             .andExpect(header().string("X-Total-Count", "2"))
             .andExpect(jsonPath("$", hasSize(2)))
@@ -142,7 +133,7 @@ class TaskControllerTest {
 
     @Test
     void filtersTasksByQueryParams() throws Exception {
-        var token = loginAs("hexlet@example.com", "qwerty");
+        var token = adminToken();
         var admin = userRepository.findByEmail("hexlet@example.com").orElseThrow();
         var otherUser = saveUser("other@example.com");
         var bug = labelRepository.findByName("bug").orElseThrow();
@@ -154,12 +145,11 @@ class TaskControllerTest {
         saveTaskWithLabel("Create feature", "Content", 4, "to_be_fixed", admin.getId(), feature.getId());
         saveTaskWithLabel("Publish version", "Content", 5, "to_be_fixed", admin.getId(), bug.getId());
 
-        mockMvc.perform(get("/api/tasks")
-                .header("Authorization", bearer(token))
+        performAuthorized(get("/api/tasks")
                 .param("titleCont", "create")
                 .param("assigneeId", String.valueOf(admin.getId()))
                 .param("status", "to_be_fixed")
-                .param("labelId", String.valueOf(bug.getId())))
+                .param("labelId", String.valueOf(bug.getId())), token)
             .andExpect(status().isOk())
             .andExpect(header().string("X-Total-Count", "1"))
             .andExpect(jsonPath("$", hasSize(1)))
@@ -172,22 +162,19 @@ class TaskControllerTest {
 
     @Test
     void updatesTaskPartially() throws Exception {
-        var token = loginAs("hexlet@example.com", "qwerty");
+        var token = adminToken();
         var admin = userRepository.findByEmail("hexlet@example.com").orElseThrow();
         var feature = labelRepository.findByName("feature").orElseThrow();
         var savedTask = saveTask("Task 1", "Old content", 12, "draft", admin.getId());
 
-        mockMvc.perform(put("/api/tasks/{id}", savedTask.getId())
-                .header("Authorization", bearer(token))
-                .contentType(MediaType.APPLICATION_JSON)
-                .content("""
+        performJson(put("/api/tasks/{id}", savedTask.getId()), token, """
                     {
                       "title": "New title",
                       "content": "New content",
                       "status": "to_review",
                       "taskLabelIds": [%d]
                     }
-                    """.formatted(feature.getId())))
+                    """.formatted(feature.getId()))
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.id").value(savedTask.getId()))
             .andExpect(jsonPath("$.index").value(12))
@@ -206,11 +193,10 @@ class TaskControllerTest {
 
     @Test
     void deletesTask() throws Exception {
-        var token = loginAs("hexlet@example.com", "qwerty");
+        var token = adminToken();
         var savedTask = saveTask("Task 1", "Content", 1, "draft", null);
 
-        mockMvc.perform(delete("/api/tasks/{id}", savedTask.getId())
-                .header("Authorization", bearer(token)))
+        performAuthorized(delete("/api/tasks/{id}", savedTask.getId()), token)
             .andExpect(status().isNoContent());
 
         assertThat(taskRepository.findById(savedTask.getId())).isEmpty();
@@ -218,17 +204,14 @@ class TaskControllerTest {
 
     @Test
     void returnsBadRequestForInvalidCreatePayload() throws Exception {
-        var token = loginAs("hexlet@example.com", "qwerty");
+        var token = adminToken();
 
-        mockMvc.perform(post("/api/tasks")
-                .header("Authorization", bearer(token))
-                .contentType(MediaType.APPLICATION_JSON)
-                .content("""
+        performJson(post("/api/tasks"), token, """
                     {
                       "title": "",
                       "status": ""
                     }
-                    """))
+                    """)
             .andExpect(status().isBadRequest())
             .andExpect(jsonPath("$.title").exists())
             .andExpect(jsonPath("$.status").exists());
@@ -236,55 +219,45 @@ class TaskControllerTest {
 
     @Test
     void returnsNotFoundForUnknownReferences() throws Exception {
-        var token = loginAs("hexlet@example.com", "qwerty");
+        var token = adminToken();
 
-        mockMvc.perform(post("/api/tasks")
-                .header("Authorization", bearer(token))
-                .contentType(MediaType.APPLICATION_JSON)
-                .content("""
+        performJson(post("/api/tasks"), token, """
                     {
                       "title": "Task",
                       "status": "unknown"
                     }
-                    """))
+                    """)
             .andExpect(status().isNotFound())
             .andExpect(jsonPath("$.error").value("Task status not found"));
 
-        mockMvc.perform(post("/api/tasks")
-                .header("Authorization", bearer(token))
-                .contentType(MediaType.APPLICATION_JSON)
-                .content("""
+        performJson(post("/api/tasks"), token, """
                     {
                       "title": "Task",
                       "status": "draft",
                       "assignee_id": 999999
                     }
-                    """))
+                    """)
             .andExpect(status().isNotFound())
             .andExpect(jsonPath("$.error").value("User not found"));
 
-        mockMvc.perform(post("/api/tasks")
-                .header("Authorization", bearer(token))
-                .contentType(MediaType.APPLICATION_JSON)
-                .content("""
+        performJson(post("/api/tasks"), token, """
                     {
                       "title": "Task",
                       "status": "draft",
                       "taskLabelIds": [999999]
                     }
-                    """))
+                    """)
             .andExpect(status().isNotFound())
             .andExpect(jsonPath("$.error").value("Label not found"));
     }
 
     @Test
     void preventsDeletingLinkedUser() throws Exception {
-        var token = loginAs("hexlet@example.com", "qwerty");
+        var token = adminToken();
         var admin = userRepository.findByEmail("hexlet@example.com").orElseThrow();
         saveTask("Task 1", "Content", 1, "draft", admin.getId());
 
-        mockMvc.perform(delete("/api/users/{id}", admin.getId())
-                .header("Authorization", bearer(token)))
+        performAuthorized(delete("/api/users/{id}", admin.getId()), token)
             .andExpect(status().isBadRequest());
 
         assertThat(userRepository.findById(admin.getId())).isPresent();
@@ -292,12 +265,11 @@ class TaskControllerTest {
 
     @Test
     void preventsDeletingLinkedTaskStatus() throws Exception {
-        var token = loginAs("hexlet@example.com", "qwerty");
+        var token = adminToken();
         var taskStatus = taskStatusRepository.findBySlug("draft").orElseThrow();
         saveTask("Task 1", "Content", 1, "draft", null);
 
-        mockMvc.perform(delete("/api/task_statuses/{id}", taskStatus.getId())
-                .header("Authorization", bearer(token)))
+        performAuthorized(delete("/api/task_statuses/{id}", taskStatus.getId()), token)
             .andExpect(status().isBadRequest());
 
         assertThat(taskStatusRepository.findById(taskStatus.getId())).isPresent();
@@ -305,10 +277,9 @@ class TaskControllerTest {
 
     @Test
     void returnsNotFoundForUnknownTask() throws Exception {
-        var token = loginAs("hexlet@example.com", "qwerty");
+        var token = adminToken();
 
-        mockMvc.perform(get("/api/tasks/{id}", 999999)
-                .header("Authorization", bearer(token)))
+        performAuthorized(get("/api/tasks/{id}", 999999), token)
             .andExpect(status().isNotFound())
             .andExpect(jsonPath("$.error").value("Task not found"));
     }
@@ -343,24 +314,5 @@ class TaskControllerTest {
         user.setEmail(email);
         user.setPassword("password");
         return userRepository.save(user);
-    }
-
-    private String loginAs(String username, String password) throws Exception {
-        MvcResult result = mockMvc.perform(post("/api/login")
-                .contentType(MediaType.APPLICATION_JSON)
-                .content("""
-                    {
-                      "username": "%s",
-                      "password": "%s"
-                    }
-                    """.formatted(username, password)))
-            .andExpect(status().isOk())
-            .andReturn();
-
-        return result.getResponse().getContentAsString();
-    }
-
-    private String bearer(String token) {
-        return "Bearer " + token;
     }
 }

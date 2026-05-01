@@ -18,16 +18,11 @@ import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMock
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.MediaType;
 import org.springframework.test.annotation.DirtiesContext;
-import org.springframework.test.web.servlet.MockMvc;
-import org.springframework.test.web.servlet.MvcResult;
 
 @SpringBootTest
 @AutoConfigureMockMvc
 @DirtiesContext(classMode = DirtiesContext.ClassMode.AFTER_EACH_TEST_METHOD)
-class TaskStatusControllerTest {
-
-    @Autowired
-    private MockMvc mockMvc;
+class TaskStatusControllerTest extends ControllerTestSupport {
 
     @Autowired
     private TaskStatusRepository taskStatusRepository;
@@ -59,9 +54,9 @@ class TaskStatusControllerTest {
 
     @Test
     void getsTaskStatusesList() throws Exception {
-        var token = loginAs("hexlet@example.com", "qwerty");
+        var token = adminToken();
 
-        mockMvc.perform(get("/api/task_statuses").header("Authorization", bearer(token)))
+        performAuthorized(get("/api/task_statuses"), token)
             .andExpect(status().isOk())
             .andExpect(header().string("X-Total-Count", "5"))
             .andExpect(jsonPath("$", hasSize(5)))
@@ -76,11 +71,10 @@ class TaskStatusControllerTest {
 
     @Test
     void getsTaskStatusById() throws Exception {
-        var token = loginAs("hexlet@example.com", "qwerty");
+        var token = adminToken();
         var taskStatus = taskStatusRepository.findBySlug("to_review").orElseThrow();
 
-        mockMvc.perform(get("/api/task_statuses/{id}", taskStatus.getId())
-                .header("Authorization", bearer(token)))
+        performAuthorized(get("/api/task_statuses/{id}", taskStatus.getId()), token)
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.id").value(taskStatus.getId()))
             .andExpect(jsonPath("$.name").value("ToReview"))
@@ -90,17 +84,14 @@ class TaskStatusControllerTest {
 
     @Test
     void createsTaskStatus() throws Exception {
-        var token = loginAs("hexlet@example.com", "qwerty");
+        var token = adminToken();
 
-        mockMvc.perform(post("/api/task_statuses")
-                .header("Authorization", bearer(token))
-                .contentType(MediaType.APPLICATION_JSON)
-                .content("""
+        performJson(post("/api/task_statuses"), token, """
                     {
                       "name": "New",
                       "slug": "new"
                     }
-                    """))
+                    """)
             .andExpect(status().isCreated())
             .andExpect(jsonPath("$.id").isNumber())
             .andExpect(jsonPath("$.name").value("New"))
@@ -112,17 +103,14 @@ class TaskStatusControllerTest {
 
     @Test
     void updatesTaskStatusPartially() throws Exception {
-        var token = loginAs("hexlet@example.com", "qwerty");
+        var token = adminToken();
         var taskStatus = taskStatusRepository.findBySlug("draft").orElseThrow();
 
-        mockMvc.perform(put("/api/task_statuses/{id}", taskStatus.getId())
-                .header("Authorization", bearer(token))
-                .contentType(MediaType.APPLICATION_JSON)
-                .content("""
+        performJson(put("/api/task_statuses/{id}", taskStatus.getId()), token, """
                     {
                       "name": "NewStatus"
                     }
-                    """))
+                    """)
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.id").value(taskStatus.getId()))
             .andExpect(jsonPath("$.name").value("NewStatus"))
@@ -135,11 +123,10 @@ class TaskStatusControllerTest {
 
     @Test
     void deletesTaskStatus() throws Exception {
-        var token = loginAs("hexlet@example.com", "qwerty");
+        var token = adminToken();
         var taskStatus = taskStatusRepository.findBySlug("published").orElseThrow();
 
-        mockMvc.perform(delete("/api/task_statuses/{id}", taskStatus.getId())
-                .header("Authorization", bearer(token)))
+        performAuthorized(delete("/api/task_statuses/{id}", taskStatus.getId()), token)
             .andExpect(status().isNoContent());
 
         assertThat(taskStatusRepository.findById(taskStatus.getId())).isEmpty();
@@ -147,17 +134,14 @@ class TaskStatusControllerTest {
 
     @Test
     void returnsBadRequestForInvalidCreatePayload() throws Exception {
-        var token = loginAs("hexlet@example.com", "qwerty");
+        var token = adminToken();
 
-        mockMvc.perform(post("/api/task_statuses")
-                .header("Authorization", bearer(token))
-                .contentType(MediaType.APPLICATION_JSON)
-                .content("""
+        performJson(post("/api/task_statuses"), token, """
                     {
                       "name": "",
                       "slug": ""
                     }
-                    """))
+                    """)
             .andExpect(status().isBadRequest())
             .andExpect(jsonPath("$.name").exists())
             .andExpect(jsonPath("$.slug").exists());
@@ -165,74 +149,45 @@ class TaskStatusControllerTest {
 
     @Test
     void returnsBadRequestForDuplicateNameOrSlug() throws Exception {
-        var token = loginAs("hexlet@example.com", "qwerty");
+        var token = adminToken();
 
-        mockMvc.perform(post("/api/task_statuses")
-                .header("Authorization", bearer(token))
-                .contentType(MediaType.APPLICATION_JSON)
-                .content("""
+        performJson(post("/api/task_statuses"), token, """
                     {
                       "name": "Draft",
                       "slug": "another_draft"
                     }
-                    """))
+                    """)
             .andExpect(status().isBadRequest());
 
-        mockMvc.perform(post("/api/task_statuses")
-                .header("Authorization", bearer(token))
-                .contentType(MediaType.APPLICATION_JSON)
-                .content("""
+        performJson(post("/api/task_statuses"), token, """
                     {
                       "name": "Another Draft",
                       "slug": "draft"
                     }
-                    """))
+                    """)
             .andExpect(status().isBadRequest());
     }
 
     @Test
     void returnsBadRequestForInvalidUpdatePayload() throws Exception {
-        var token = loginAs("hexlet@example.com", "qwerty");
+        var token = adminToken();
         var taskStatus = taskStatusRepository.findBySlug("draft").orElseThrow();
 
-        mockMvc.perform(put("/api/task_statuses/{id}", taskStatus.getId())
-                .header("Authorization", bearer(token))
-                .contentType(MediaType.APPLICATION_JSON)
-                .content("""
+        performJson(put("/api/task_statuses/{id}", taskStatus.getId()), token, """
                     {
                       "slug": ""
                     }
-                    """))
+                    """)
             .andExpect(status().isBadRequest())
             .andExpect(jsonPath("$.slug").exists());
     }
 
     @Test
     void returnsNotFoundForUnknownTaskStatus() throws Exception {
-        var token = loginAs("hexlet@example.com", "qwerty");
+        var token = adminToken();
 
-        mockMvc.perform(get("/api/task_statuses/{id}", 999999)
-                .header("Authorization", bearer(token)))
+        performAuthorized(get("/api/task_statuses/{id}", 999999), token)
             .andExpect(status().isNotFound())
             .andExpect(jsonPath("$.error").value("Task status not found"));
-    }
-
-    private String loginAs(String username, String password) throws Exception {
-        MvcResult result = mockMvc.perform(post("/api/login")
-                .contentType(MediaType.APPLICATION_JSON)
-                .content("""
-                    {
-                      "username": "%s",
-                      "password": "%s"
-                    }
-                    """.formatted(username, password)))
-            .andExpect(status().isOk())
-            .andReturn();
-
-        return result.getResponse().getContentAsString();
-    }
-
-    private String bearer(String token) {
-        return "Bearer " + token;
     }
 }

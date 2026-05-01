@@ -39,15 +39,15 @@ public class LabelService {
     @Transactional
     public LabelResponse createLabel(LabelCreateRequest request) {
         var label = new Label();
-        label.setName(request.getName());
+        label.setName(request.name());
         return toResponse(labelRepository.save(label));
     }
 
     @Transactional
     public LabelResponse updateLabel(Long id, LabelUpdateRequest request) {
         var label = findLabel(id);
-        if (request.getName() != null) {
-            label.setName(request.getName());
+        if (request.name() != null) {
+            label.setName(request.name());
         }
         return toResponse(labelRepository.save(label));
     }

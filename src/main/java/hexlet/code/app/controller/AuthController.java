@@ -27,7 +27,7 @@ public class AuthController {
     @PostMapping(value = "/login", produces = MediaType.TEXT_PLAIN_VALUE)
     public String login(@Valid @RequestBody LoginRequest request) {
         var authentication = authenticationManager.authenticate(
-                new UsernamePasswordAuthenticationToken(request.getUsername(), request.getPassword())
+                new UsernamePasswordAuthenticationToken(request.username(), request.password())
         );
 
         var userDetails = (AppUserDetails) authentication.getPrincipal();

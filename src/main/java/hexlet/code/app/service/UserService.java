@@ -39,10 +39,10 @@ public class UserService {
     @Transactional
     public UserResponse createUser(UserCreateRequest request) {
         var user = new User();
-        user.setEmail(request.getEmail());
-        user.setFirstName(request.getFirstName());
-        user.setLastName(request.getLastName());
-        user.setPassword(passwordEncoder.encode(request.getPassword()));
+        user.setEmail(request.email());
+        user.setFirstName(request.firstName());
+        user.setLastName(request.lastName());
+        user.setPassword(passwordEncoder.encode(request.password()));
         return toResponse(userRepository.save(user));
     }
 
@@ -50,17 +50,17 @@ public class UserService {
     @PreAuthorize("#id == authentication.principal.id or authentication.name == 'hexlet@example.com'")
     public UserResponse updateUser(Long id, UserUpdateRequest request) {
         var user = findUser(id);
-        if (request.getEmail() != null) {
-            user.setEmail(request.getEmail());
+        if (request.email() != null) {
+            user.setEmail(request.email());
         }
-        if (request.getFirstName() != null) {
-            user.setFirstName(request.getFirstName());
+        if (request.firstName() != null) {
+            user.setFirstName(request.firstName());
         }
-        if (request.getLastName() != null) {
-            user.setLastName(request.getLastName());
+        if (request.lastName() != null) {
+            user.setLastName(request.lastName());
         }
-        if (request.getPassword() != null) {
-            user.setPassword(passwordEncoder.encode(request.getPassword()));
+        if (request.password() != null) {
+            user.setPassword(passwordEncoder.encode(request.password()));
         }
         return toResponse(userRepository.save(user));
     }

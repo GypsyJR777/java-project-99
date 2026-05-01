@@ -35,19 +35,19 @@ public class TaskStatusService {
     @Transactional
     public TaskStatusResponse createTaskStatus(TaskStatusCreateRequest request) {
         var taskStatus = new TaskStatus();
-        taskStatus.setName(request.getName());
-        taskStatus.setSlug(request.getSlug());
+        taskStatus.setName(request.name());
+        taskStatus.setSlug(request.slug());
         return toResponse(taskStatusRepository.save(taskStatus));
     }
 
     @Transactional
     public TaskStatusResponse updateTaskStatus(Long id, TaskStatusUpdateRequest request) {
         var taskStatus = findTaskStatus(id);
-        if (request.getName() != null) {
-            taskStatus.setName(request.getName());
+        if (request.name() != null) {
+            taskStatus.setName(request.name());
         }
-        if (request.getSlug() != null) {
-            taskStatus.setSlug(request.getSlug());
+        if (request.slug() != null) {
+            taskStatus.setSlug(request.slug());
         }
         return toResponse(taskStatusRepository.save(taskStatus));
     }

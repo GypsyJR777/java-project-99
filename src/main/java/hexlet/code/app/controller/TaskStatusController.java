@@ -31,9 +31,7 @@ public class TaskStatusController {
     @GetMapping
     public ResponseEntity<List<TaskStatusResponse>> index() {
         var taskStatuses = taskStatusService.getAllTaskStatuses();
-        return ResponseEntity.ok()
-            .header("X-Total-Count", String.valueOf(taskStatuses.size()))
-            .body(taskStatuses);
+        return ControllerResponses.withTotalCount(taskStatuses);
     }
 
     @GetMapping("/{id}")

@@ -6,8 +6,8 @@ import hexlet.code.app.dto.user.UserUpdateRequest;
 import hexlet.code.app.service.UserService;
 import jakarta.validation.Valid;
 import java.util.List;
-import org.springframework.http.ResponseEntity;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -31,9 +31,7 @@ public class UserController {
     @GetMapping
     public ResponseEntity<List<UserResponse>> index() {
         var users = userService.getAllUsers();
-        return ResponseEntity.ok()
-            .header("X-Total-Count", String.valueOf(users.size()))
-            .body(users);
+        return ControllerResponses.withTotalCount(users);
     }
 
     @GetMapping("/{id}")

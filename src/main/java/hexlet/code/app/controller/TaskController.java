@@ -37,9 +37,7 @@ public class TaskController {
         @RequestParam(required = false) Long labelId
     ) {
         var tasks = taskService.getTasks(titleCont, assigneeId, status, labelId);
-        return ResponseEntity.ok()
-            .header("X-Total-Count", String.valueOf(tasks.size()))
-            .body(tasks);
+        return ControllerResponses.withTotalCount(tasks);
     }
 
     @GetMapping("/{id}")

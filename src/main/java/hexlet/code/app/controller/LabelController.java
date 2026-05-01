@@ -31,9 +31,7 @@ public class LabelController {
     @GetMapping
     public ResponseEntity<List<LabelResponse>> index() {
         var labels = labelService.getAllLabels();
-        return ResponseEntity.ok()
-            .header("X-Total-Count", String.valueOf(labels.size()))
-            .body(labels);
+        return ControllerResponses.withTotalCount(labels);
     }
 
     @GetMapping("/{id}")
