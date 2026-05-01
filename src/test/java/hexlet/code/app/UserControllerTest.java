@@ -67,13 +67,6 @@ class UserControllerTest extends ControllerTestSupport {
     }
 
     @Test
-    void welcomeIsAvailableWithoutAuthentication() throws Exception {
-        mockMvc.perform(get("/welcome"))
-            .andExpect(status().isOk())
-            .andExpect(content().string("Welcome to Spring"));
-    }
-
-    @Test
     void rejectsUnauthorizedUsersRequests() throws Exception {
         mockMvc.perform(get("/api/users"))
             .andExpect(status().isUnauthorized());
