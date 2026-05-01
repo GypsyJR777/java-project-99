@@ -7,4 +7,4 @@
 [![Duplicated Lines (%)](https://sonarcloud.io/api/project_badges/measure?project=GypsyJR777_java-project-99&metric=duplicated_lines_density)](https://sonarcloud.io/summary/new_code?id=GypsyJR777_java-project-99)
 
 ## Render
-https://java-project-99-e0j8.onrender.com/welcome
+https://java-project-99-e0j8.onrender.com/
