@@ -16,6 +16,7 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -41,7 +42,12 @@ public class TaskService {
 
     @Transactional(readOnly = true)
     public List<TaskResponse> getAllTasks() {
-        return taskRepository.findAll()
+        return getTasks(null, null, null, null);
+    }
+
+    @Transactional(readOnly = true)
+    public List<TaskResponse> getTasks(String titleCont, Long assigneeId, String status, Long labelId) {
+        return taskRepository.findAll(buildFilter(titleCont, assigneeId, status, labelId))
             .stream()
             .map(this::toResponse)
             .toList();
@@ -125,6 +131,53 @@ public class TaskService {
             throw new ResourceNotFoundException("Label not found");
         }
         return new LinkedHashSet<>(labels);
+    }
+
+    private Specification<Task> buildFilter(String titleCont, Long assigneeId, String status, Long labelId) {
+        return Specification.allOf(
+            titleContains(titleCont),
+            hasAssignee(assigneeId),
+            hasStatus(status),
+            hasLabel(labelId)
+        );
+    }
+
+    private Specification<Task> titleContains(String titleCont) {
+        return (root, query, criteriaBuilder) -> {
+            if (titleCont == null || titleCont.isBlank()) {
+                return criteriaBuilder.conjunction();
+            }
+            var pattern = "%" + titleCont.toLowerCase() + "%";
+            return criteriaBuilder.like(criteriaBuilder.lower(root.get("name")), pattern);
+        };
+    }
+
+    private Specification<Task> hasAssignee(Long assigneeId) {
+        return (root, query, criteriaBuilder) -> {
+            if (assigneeId == null) {
+                return criteriaBuilder.conjunction();
+            }
+            return criteriaBuilder.equal(root.get("assignee").get("id"), assigneeId);
+        };
+    }
+
+    private Specification<Task> hasStatus(String status) {
+        return (root, query, criteriaBuilder) -> {
+            if (status == null || status.isBlank()) {
+                return criteriaBuilder.conjunction();
+            }
+            return criteriaBuilder.equal(root.get("taskStatus").get("slug"), status);
+        };
+    }
+
+    private Specification<Task> hasLabel(Long labelId) {
+        return (root, query, criteriaBuilder) -> {
+            if (labelId == null) {
+                return criteriaBuilder.conjunction();
+            }
+            query.distinct(true);
+            return criteriaBuilder.equal(root.join("labels").get("id"), labelId);
+        };
     }
 
     private TaskResponse toResponse(Task task) {

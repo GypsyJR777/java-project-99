@@ -15,6 +15,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -29,8 +30,13 @@ public class TaskController {
     }
 
     @GetMapping
-    public ResponseEntity<List<TaskResponse>> index() {
-        var tasks = taskService.getAllTasks();
+    public ResponseEntity<List<TaskResponse>> index(
+        @RequestParam(required = false) String titleCont,
+        @RequestParam(required = false) Long assigneeId,
+        @RequestParam(required = false) String status,
+        @RequestParam(required = false) Long labelId
+    ) {
+        var tasks = taskService.getTasks(titleCont, assigneeId, status, labelId);
         return ResponseEntity.ok()
             .header("X-Total-Count", String.valueOf(tasks.size()))
             .body(tasks);

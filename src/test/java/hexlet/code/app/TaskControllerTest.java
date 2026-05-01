@@ -12,6 +12,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import hexlet.code.app.model.Task;
+import hexlet.code.app.model.User;
 import hexlet.code.app.repository.LabelRepository;
 import hexlet.code.app.repository.TaskRepository;
 import hexlet.code.app.repository.TaskStatusRepository;
@@ -137,6 +138,36 @@ class TaskControllerTest {
             .andExpect(jsonPath("$[0].status").value("to_be_fixed"))
             .andExpect(jsonPath("$[1].title").value("Task 2"))
             .andExpect(jsonPath("$[1].status").value("to_review"));
+    }
+
+    @Test
+    void filtersTasksByQueryParams() throws Exception {
+        var token = loginAs("hexlet@example.com", "qwerty");
+        var admin = userRepository.findByEmail("hexlet@example.com").orElseThrow();
+        var otherUser = saveUser("other@example.com");
+        var bug = labelRepository.findByName("bug").orElseThrow();
+        var feature = labelRepository.findByName("feature").orElseThrow();
+
+        var target = saveTaskWithLabel("Create new version", "Content", 1, "to_be_fixed", admin.getId(), bug.getId());
+        saveTaskWithLabel("Create docs", "Content", 2, "to_be_fixed", otherUser.getId(), bug.getId());
+        saveTaskWithLabel("Create draft", "Content", 3, "draft", admin.getId(), bug.getId());
+        saveTaskWithLabel("Create feature", "Content", 4, "to_be_fixed", admin.getId(), feature.getId());
+        saveTaskWithLabel("Publish version", "Content", 5, "to_be_fixed", admin.getId(), bug.getId());
+
+        mockMvc.perform(get("/api/tasks")
+                .header("Authorization", bearer(token))
+                .param("titleCont", "create")
+                .param("assigneeId", String.valueOf(admin.getId()))
+                .param("status", "to_be_fixed")
+                .param("labelId", String.valueOf(bug.getId())))
+            .andExpect(status().isOk())
+            .andExpect(header().string("X-Total-Count", "1"))
+            .andExpect(jsonPath("$", hasSize(1)))
+            .andExpect(jsonPath("$[0].id").value(target.getId()))
+            .andExpect(jsonPath("$[0].title").value("Create new version"))
+            .andExpect(jsonPath("$[0].assignee_id").value(admin.getId()))
+            .andExpect(jsonPath("$[0].status").value("to_be_fixed"))
+            .andExpect(jsonPath("$[0].taskLabelIds[0]").value(bug.getId()));
     }
 
     @Test
@@ -292,6 +323,26 @@ class TaskControllerTest {
             task.setAssignee(userRepository.findById(assigneeId).orElseThrow());
         }
         return taskRepository.save(task);
+    }
+
+    private Task saveTaskWithLabel(
+        String title,
+        String content,
+        Integer index,
+        String status,
+        Long assigneeId,
+        Long labelId
+    ) {
+        var task = saveTask(title, content, index, status, assigneeId);
+        task.getLabels().add(labelRepository.findById(labelId).orElseThrow());
+        return taskRepository.save(task);
+    }
+
+    private User saveUser(String email) {
+        var user = new User();
+        user.setEmail(email);
+        user.setPassword("password");
+        return userRepository.save(user);
     }
 
     private String loginAs(String username, String password) throws Exception {
