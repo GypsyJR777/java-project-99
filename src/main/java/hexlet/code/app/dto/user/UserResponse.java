@@ -4,41 +4,41 @@ import java.time.LocalDate;
 
 public class UserResponse {
 
-	private Long id;
+    private Long id;
 
-	private String email;
+    private String email;
 
-	private String firstName;
+    private String firstName;
 
-	private String lastName;
+    private String lastName;
 
-	private LocalDate createdAt;
+    private LocalDate createdAt;
 
-	public UserResponse(Long id, String email, String firstName, String lastName, LocalDate createdAt) {
-		this.id = id;
-		this.email = email;
-		this.firstName = firstName;
-		this.lastName = lastName;
-		this.createdAt = createdAt;
-	}
+    public UserResponse(Long id, String email, String firstName, String lastName, LocalDate createdAt) {
+        this.id = id;
+        this.email = email;
+        this.firstName = firstName;
+        this.lastName = lastName;
+        this.createdAt = createdAt;
+    }
 
-	public Long getId() {
-		return id;
-	}
+    public Long getId() {
+        return id;
+    }
 
-	public String getEmail() {
-		return email;
-	}
+    public String getEmail() {
+        return email;
+    }
 
-	public String getFirstName() {
-		return firstName;
-	}
+    public String getFirstName() {
+        return firstName;
+    }
 
-	public String getLastName() {
-		return lastName;
-	}
+    public String getLastName() {
+        return lastName;
+    }
 
-	public LocalDate getCreatedAt() {
-		return createdAt;
-	}
+    public LocalDate getCreatedAt() {
+        return createdAt;
+    }
 }

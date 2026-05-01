@@ -2,6 +2,7 @@ package hexlet.code.app.dto.task;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 import jakarta.validation.constraints.Size;
+import java.util.List;
 
 public class TaskUpdateRequest {
 
@@ -17,6 +18,8 @@ public class TaskUpdateRequest {
 
     @Size(min = 1)
     private String status;
+
+    private List<Long> taskLabelIds;
 
     public Integer getIndex() {
         return index;
@@ -56,5 +59,13 @@ public class TaskUpdateRequest {
 
     public void setStatus(String status) {
         this.status = status;
+    }
+
+    public List<Long> getTaskLabelIds() {
+        return taskLabelIds;
+    }
+
+    public void setTaskLabelIds(List<Long> taskLabelIds) {
+        this.taskLabelIds = taskLabelIds;
     }
 }

@@ -1,6 +1,7 @@
 package hexlet.code.app;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.hasSize;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -11,6 +12,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import hexlet.code.app.model.Task;
+import hexlet.code.app.repository.LabelRepository;
 import hexlet.code.app.repository.TaskRepository;
 import hexlet.code.app.repository.TaskStatusRepository;
 import hexlet.code.app.repository.UserRepository;
@@ -40,6 +42,9 @@ class TaskControllerTest {
     @Autowired
     private UserRepository userRepository;
 
+    @Autowired
+    private LabelRepository labelRepository;
+
     @Test
     void rejectsUnauthorizedTaskRequests() throws Exception {
         mockMvc.perform(get("/api/tasks"))
@@ -60,6 +65,8 @@ class TaskControllerTest {
     void createsTask() throws Exception {
         var token = loginAs("hexlet@example.com", "qwerty");
         var admin = userRepository.findByEmail("hexlet@example.com").orElseThrow();
+        var feature = labelRepository.findByName("feature").orElseThrow();
+        var bug = labelRepository.findByName("bug").orElseThrow();
 
         mockMvc.perform(post("/api/tasks")
                 .header("Authorization", bearer(token))
@@ -70,9 +77,10 @@ class TaskControllerTest {
                       "assignee_id": %d,
                       "title": "Test title",
                       "content": "Test content",
-                      "status": "draft"
+                      "status": "draft",
+                      "taskLabelIds": [%d, %d]
                     }
-                    """.formatted(admin.getId())))
+                    """.formatted(admin.getId(), feature.getId(), bug.getId())))
             .andExpect(status().isCreated())
             .andExpect(jsonPath("$.id").isNumber())
             .andExpect(jsonPath("$.index").value(12))
@@ -80,6 +88,11 @@ class TaskControllerTest {
             .andExpect(jsonPath("$.title").value("Test title"))
             .andExpect(jsonPath("$.content").value("Test content"))
             .andExpect(jsonPath("$.status").value("draft"))
+            .andExpect(jsonPath("$.taskLabelIds", hasSize(2)))
+            .andExpect(jsonPath("$.taskLabelIds[*]", containsInAnyOrder(
+                feature.getId().intValue(),
+                bug.getId().intValue()
+            )))
             .andExpect(jsonPath("$.createdAt").exists());
 
         var task = taskRepository.findAll().get(0);
@@ -87,6 +100,8 @@ class TaskControllerTest {
         assertThat(task.getDescription()).isEqualTo("Test content");
         assertThat(task.getTaskStatus().getSlug()).isEqualTo("draft");
         assertThat(task.getAssignee().getId()).isEqualTo(admin.getId());
+        assertThat(taskRepository.existsByLabelsId(feature.getId())).isTrue();
+        assertThat(taskRepository.existsByLabelsId(bug.getId())).isTrue();
     }
 
     @Test
@@ -128,6 +143,7 @@ class TaskControllerTest {
     void updatesTaskPartially() throws Exception {
         var token = loginAs("hexlet@example.com", "qwerty");
         var admin = userRepository.findByEmail("hexlet@example.com").orElseThrow();
+        var feature = labelRepository.findByName("feature").orElseThrow();
         var savedTask = saveTask("Task 1", "Old content", 12, "draft", admin.getId());
 
         mockMvc.perform(put("/api/tasks/{id}", savedTask.getId())
@@ -137,21 +153,24 @@ class TaskControllerTest {
                     {
                       "title": "New title",
                       "content": "New content",
-                      "status": "to_review"
+                      "status": "to_review",
+                      "taskLabelIds": [%d]
                     }
-                    """))
+                    """.formatted(feature.getId())))
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.id").value(savedTask.getId()))
             .andExpect(jsonPath("$.index").value(12))
             .andExpect(jsonPath("$.assignee_id").value(admin.getId()))
             .andExpect(jsonPath("$.title").value("New title"))
             .andExpect(jsonPath("$.content").value("New content"))
-            .andExpect(jsonPath("$.status").value("to_review"));
+            .andExpect(jsonPath("$.status").value("to_review"))
+            .andExpect(jsonPath("$.taskLabelIds[0]").value(feature.getId()));
 
         var updatedTask = taskRepository.findById(savedTask.getId()).orElseThrow();
         assertThat(updatedTask.getName()).isEqualTo("New title");
         assertThat(updatedTask.getDescription()).isEqualTo("New content");
         assertThat(updatedTask.getTaskStatus().getSlug()).isEqualTo("to_review");
+        assertThat(taskRepository.existsByLabelsId(feature.getId())).isTrue();
     }
 
     @Test
@@ -212,6 +231,19 @@ class TaskControllerTest {
                     """))
             .andExpect(status().isNotFound())
             .andExpect(jsonPath("$.error").value("User not found"));
+
+        mockMvc.perform(post("/api/tasks")
+                .header("Authorization", bearer(token))
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("""
+                    {
+                      "title": "Task",
+                      "status": "draft",
+                      "taskLabelIds": [999999]
+                    }
+                    """))
+            .andExpect(status().isNotFound())
+            .andExpect(jsonPath("$.error").value("Label not found"));
     }
 
     @Test

@@ -4,12 +4,18 @@ import hexlet.code.app.dto.task.TaskCreateRequest;
 import hexlet.code.app.dto.task.TaskResponse;
 import hexlet.code.app.dto.task.TaskUpdateRequest;
 import hexlet.code.app.exception.ResourceNotFoundException;
+import hexlet.code.app.model.Label;
 import hexlet.code.app.model.Task;
 import hexlet.code.app.model.User;
+import hexlet.code.app.repository.LabelRepository;
 import hexlet.code.app.repository.TaskRepository;
 import hexlet.code.app.repository.TaskStatusRepository;
 import hexlet.code.app.repository.UserRepository;
+import java.util.Collection;
+import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Set;
+import java.util.stream.Collectors;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -19,15 +25,18 @@ public class TaskService {
     private final TaskRepository taskRepository;
     private final TaskStatusRepository taskStatusRepository;
     private final UserRepository userRepository;
+    private final LabelRepository labelRepository;
 
     public TaskService(
         TaskRepository taskRepository,
         TaskStatusRepository taskStatusRepository,
-        UserRepository userRepository
+        UserRepository userRepository,
+        LabelRepository labelRepository
     ) {
         this.taskRepository = taskRepository;
         this.taskStatusRepository = taskStatusRepository;
         this.userRepository = userRepository;
+        this.labelRepository = labelRepository;
     }
 
     @Transactional(readOnly = true)
@@ -51,6 +60,7 @@ public class TaskService {
         task.setDescription(request.getContent());
         task.setTaskStatus(findTaskStatus(request.getStatus()));
         task.setAssignee(findAssignee(request.getAssigneeId()));
+        task.setLabels(findLabels(request.getTaskLabelIds()));
         return toResponse(taskRepository.save(task));
     }
 
@@ -71,6 +81,9 @@ public class TaskService {
         }
         if (request.getAssigneeId() != null) {
             task.setAssignee(findAssignee(request.getAssigneeId()));
+        }
+        if (request.getTaskLabelIds() != null) {
+            task.setLabels(findLabels(request.getTaskLabelIds()));
         }
         return toResponse(taskRepository.save(task));
     }
@@ -99,17 +112,38 @@ public class TaskService {
             .orElseThrow(() -> new ResourceNotFoundException("User not found"));
     }
 
+    private Set<Label> findLabels(Collection<Long> ids) {
+        if (ids == null || ids.isEmpty()) {
+            return new LinkedHashSet<>();
+        }
+        var labels = labelRepository.findAllById(ids);
+        var foundIds = labels.stream()
+            .map(Label::getId)
+            .collect(Collectors.toSet());
+        var requestedIds = new LinkedHashSet<>(ids);
+        if (!foundIds.containsAll(requestedIds)) {
+            throw new ResourceNotFoundException("Label not found");
+        }
+        return new LinkedHashSet<>(labels);
+    }
+
     private TaskResponse toResponse(Task task) {
         var assignee = task.getAssignee();
         var taskStatus = task.getTaskStatus();
-        return new TaskResponse(
-            task.getId(),
-            task.getIndex(),
-            task.getCreatedAt() == null ? null : task.getCreatedAt().toLocalDate(),
-            assignee == null ? null : assignee.getId(),
-            task.getName(),
-            task.getDescription(),
-            taskStatus.getSlug()
-        );
+        var taskLabelIds = task.getLabels()
+            .stream()
+            .map(Label::getId)
+            .sorted()
+            .toList();
+        var response = new TaskResponse();
+        response.setId(task.getId());
+        response.setIndex(task.getIndex());
+        response.setCreatedAt(task.getCreatedAt() == null ? null : task.getCreatedAt().toLocalDate());
+        response.setAssigneeId(assignee == null ? null : assignee.getId());
+        response.setTitle(task.getName());
+        response.setContent(task.getDescription());
+        response.setStatus(taskStatus.getSlug());
+        response.setTaskLabelIds(taskLabelIds);
+        return response;
     }
 }

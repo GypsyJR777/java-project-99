@@ -22,39 +22,39 @@ import org.springframework.web.bind.annotation.RestController;
 @RequestMapping("/api/users")
 public class UserController {
 
-	private final UserService userService;
+    private final UserService userService;
 
-	public UserController(UserService userService) {
-		this.userService = userService;
-	}
+    public UserController(UserService userService) {
+        this.userService = userService;
+    }
 
-	@GetMapping
-	public ResponseEntity<List<UserResponse>> index() {
-		var users = userService.getAllUsers();
-		return ResponseEntity.ok()
-			.header("X-Total-Count", String.valueOf(users.size()))
-			.body(users);
-	}
+    @GetMapping
+    public ResponseEntity<List<UserResponse>> index() {
+        var users = userService.getAllUsers();
+        return ResponseEntity.ok()
+            .header("X-Total-Count", String.valueOf(users.size()))
+            .body(users);
+    }
 
-	@GetMapping("/{id}")
-	public UserResponse show(@PathVariable Long id) {
-		return userService.getUser(id);
-	}
+    @GetMapping("/{id}")
+    public UserResponse show(@PathVariable Long id) {
+        return userService.getUser(id);
+    }
 
-	@PostMapping
-	@ResponseStatus(HttpStatus.CREATED)
-	public UserResponse create(@Valid @RequestBody UserCreateRequest request) {
-		return userService.createUser(request);
-	}
+    @PostMapping
+    @ResponseStatus(HttpStatus.CREATED)
+    public UserResponse create(@Valid @RequestBody UserCreateRequest request) {
+        return userService.createUser(request);
+    }
 
-	@PutMapping("/{id}")
-	public UserResponse update(@PathVariable Long id, @Valid @RequestBody UserUpdateRequest request) {
-		return userService.updateUser(id, request);
-	}
+    @PutMapping("/{id}")
+    public UserResponse update(@PathVariable Long id, @Valid @RequestBody UserUpdateRequest request) {
+        return userService.updateUser(id, request);
+    }
 
-	@DeleteMapping("/{id}")
-	@ResponseStatus(HttpStatus.NO_CONTENT)
-	public void delete(@PathVariable Long id) {
-		userService.deleteUser(id);
-	}
+    @DeleteMapping("/{id}")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void delete(@PathVariable Long id) {
+        userService.deleteUser(id);
+    }
 }
