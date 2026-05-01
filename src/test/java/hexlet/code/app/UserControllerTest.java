@@ -73,6 +73,20 @@ class UserControllerTest extends ControllerTestSupport {
     }
 
     @Test
+    void rejectsMalformedAuthorizationHeader() throws Exception {
+        mockMvc.perform(get("/api/users")
+                .header("Authorization", "Token invalid"))
+            .andExpect(status().isUnauthorized());
+    }
+
+    @Test
+    void rejectsInvalidBearerToken() throws Exception {
+        mockMvc.perform(get("/api/users")
+                .header("Authorization", "Bearer invalid"))
+            .andExpect(status().isUnauthorized());
+    }
+
+    @Test
     void createsUser() throws Exception {
         var adminToken = adminToken();
         performJson(post("/api/users"), adminToken, """
@@ -149,6 +163,27 @@ class UserControllerTest extends ControllerTestSupport {
         org.assertj.core.api.Assertions.assertThat(updatedUser.getLastName()).isEqualTo("Jons");
         var passwordMatches = passwordEncoder.matches("new-password", updatedUser.getPassword());
         org.assertj.core.api.Assertions.assertThat(passwordMatches).isTrue();
+    }
+
+    @Test
+    void updatesUserNamesOnly() throws Exception {
+        var adminToken = adminToken();
+        var savedUser = saveUser("name-only@google.com", "Old", "Name", "secret");
+
+        performJson(put("/api/users/{id}", savedUser.getId()), adminToken, """
+            {
+              "firstName": "New",
+              "lastName": "Person"
+            }
+            """)
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.email").value("name-only@google.com"))
+            .andExpect(jsonPath("$.firstName").value("New"))
+            .andExpect(jsonPath("$.lastName").value("Person"));
+
+        var updatedUser = userRepository.findById(savedUser.getId()).orElseThrow();
+        org.assertj.core.api.Assertions.assertThat(updatedUser.getFirstName()).isEqualTo("New");
+        org.assertj.core.api.Assertions.assertThat(updatedUser.getLastName()).isEqualTo("Person");
     }
 
     @Test

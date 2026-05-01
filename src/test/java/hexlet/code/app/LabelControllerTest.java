@@ -115,6 +115,19 @@ class LabelControllerTest extends ControllerTestSupport {
     }
 
     @Test
+    void keepsLabelUnchangedForEmptyUpdate() throws Exception {
+        var token = adminToken();
+        var label = labelRepository.findByName("feature").orElseThrow();
+
+        performJson(put("/api/labels/{id}", label.getId()), token, "{}")
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.id").value(label.getId()))
+            .andExpect(jsonPath("$.name").value("feature"));
+
+        assertThat(labelRepository.findByName("feature")).isPresent();
+    }
+
+    @Test
     void deletesLabel() throws Exception {
         var token = adminToken();
         var label = labelRepository.findByName("bug").orElseThrow();

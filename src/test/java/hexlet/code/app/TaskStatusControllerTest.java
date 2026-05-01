@@ -122,6 +122,23 @@ class TaskStatusControllerTest extends ControllerTestSupport {
     }
 
     @Test
+    void updatesTaskStatusSlugOnly() throws Exception {
+        var token = adminToken();
+        var taskStatus = taskStatusRepository.findBySlug("to_publish").orElseThrow();
+
+        performJson(put("/api/task_statuses/{id}", taskStatus.getId()), token, """
+                    {
+                      "slug": "ready_to_publish"
+                    }
+                    """)
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.name").value("ToPublish"))
+            .andExpect(jsonPath("$.slug").value("ready_to_publish"));
+
+        assertThat(taskStatusRepository.findBySlug("ready_to_publish")).isPresent();
+    }
+
+    @Test
     void deletesTaskStatus() throws Exception {
         var token = adminToken();
         var taskStatus = taskStatusRepository.findBySlug("published").orElseThrow();

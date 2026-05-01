@@ -98,6 +98,27 @@ class TaskControllerTest extends ControllerTestSupport {
     }
 
     @Test
+    void createsTaskWithoutOptionalReferences() throws Exception {
+        var token = adminToken();
+        var bug = labelRepository.findByName("bug").orElseThrow();
+
+        performJson(post("/api/tasks"), token, """
+                    {
+                      "title": "Standalone task",
+                      "status": "draft"
+                    }
+                    """)
+            .andExpect(status().isCreated())
+            .andExpect(jsonPath("$.title").value("Standalone task"))
+            .andExpect(jsonPath("$.assignee_id").doesNotExist())
+            .andExpect(jsonPath("$.taskLabelIds", hasSize(0)));
+
+        var task = taskRepository.findAll().getFirst();
+        assertThat(task.getAssignee()).isNull();
+        assertThat(taskRepository.existsByLabelsId(bug.getId())).isFalse();
+    }
+
+    @Test
     void getsTaskById() throws Exception {
         var token = adminToken();
         var admin = userRepository.findByEmail("hexlet@example.com").orElseThrow();
@@ -161,6 +182,21 @@ class TaskControllerTest extends ControllerTestSupport {
     }
 
     @Test
+    void ignoresBlankTaskFilters() throws Exception {
+        var token = adminToken();
+        var admin = userRepository.findByEmail("hexlet@example.com").orElseThrow();
+        saveTask("Task 1", "Content", 1, "draft", admin.getId());
+        saveTask("Task 2", "Content", 2, "to_review", admin.getId());
+
+        performAuthorized(get("/api/tasks")
+                .param("titleCont", " ")
+                .param("status", " "), token)
+            .andExpect(status().isOk())
+            .andExpect(header().string("X-Total-Count", "2"))
+            .andExpect(jsonPath("$", hasSize(2)));
+    }
+
+    @Test
     void updatesTaskPartially() throws Exception {
         var token = adminToken();
         var admin = userRepository.findByEmail("hexlet@example.com").orElseThrow();
@@ -189,6 +225,31 @@ class TaskControllerTest extends ControllerTestSupport {
         assertThat(updatedTask.getDescription()).isEqualTo("New content");
         assertThat(updatedTask.getTaskStatus().getSlug()).isEqualTo("to_review");
         assertThat(taskRepository.existsByLabelsId(feature.getId())).isTrue();
+    }
+
+    @Test
+    void updatesTaskIndexAssigneeAndEmptyLabels() throws Exception {
+        var token = adminToken();
+        var user = saveUser("assignee@example.com");
+        var bug = labelRepository.findByName("bug").orElseThrow();
+        var savedTask = saveTaskWithLabel("Task 1", "Content", 1, "draft", null, bug.getId());
+
+        performJson(put("/api/tasks/{id}", savedTask.getId()), token, """
+                    {
+                      "index": 42,
+                      "assignee_id": %d,
+                      "taskLabelIds": []
+                    }
+                    """.formatted(user.getId()))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.index").value(42))
+            .andExpect(jsonPath("$.assignee_id").value(user.getId()))
+            .andExpect(jsonPath("$.taskLabelIds", hasSize(0)));
+
+        var updatedTask = taskRepository.findById(savedTask.getId()).orElseThrow();
+        assertThat(updatedTask.getIndex()).isEqualTo(42);
+        assertThat(updatedTask.getAssignee().getId()).isEqualTo(user.getId());
+        assertThat(taskRepository.existsByLabelsId(bug.getId())).isFalse();
     }
 
     @Test
