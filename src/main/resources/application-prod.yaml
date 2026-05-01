@@ -8,3 +8,7 @@ spring:
     show-sql: false
     hibernate:
       ddl-auto: update
+
+sentry:
+  dsn: https://9879e91df6dc602738d9ce0f48d8e278@o4511315299532800.ingest.de.sentry.io/4511315303465040
+  send-default-pii: true

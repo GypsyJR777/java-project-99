@@ -11,7 +11,7 @@ jobs:
     runs-on: ubuntu-latest
     defaults:
       run:
-        working-directory: ./app
+        working-directory: .
     steps:
       - uses: actions/checkout@v4
         with:
@@ -36,4 +36,4 @@ jobs:
       - name: Build and analyze
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
-        run: ./gradlew build jacocoTestReport sonar --info
+        run: ./gradlew build test jacocoTestReport sonar --info
