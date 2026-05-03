@@ -7,7 +7,6 @@ import hexlet.code.exception.ResourceNotFoundException;
 import hexlet.code.model.User;
 import hexlet.code.repository.UserRepository;
 import java.util.List;
-import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -47,7 +46,6 @@ public class UserService {
     }
 
     @Transactional
-    @PreAuthorize("#id == authentication.principal.id or authentication.name == 'hexlet@example.com'")
     public UserResponse updateUser(Long id, UserUpdateRequest request) {
         var user = findUser(id);
         if (request.email() != null) {
@@ -66,7 +64,6 @@ public class UserService {
     }
 
     @Transactional
-    @PreAuthorize("#id == authentication.principal.id or authentication.name == 'hexlet@example.com'")
     public void deleteUser(Long id) {
         var user = findUser(id);
         userRepository.delete(user);

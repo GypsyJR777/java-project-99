@@ -187,6 +187,20 @@ class UserControllerTest extends ControllerTestSupport {
     }
 
     @Test
+    void userUpdatesOwnProfile() throws Exception {
+        var savedUser = saveUser("self@example.com", "Old", "Name", "secret123");
+        var token = loginAs("self@example.com", "secret123");
+
+        performJson(put("/api/users/{id}", savedUser.getId()), token, """
+            {
+              "firstName": "Self"
+            }
+            """)
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.firstName").value("Self"));
+    }
+
+    @Test
     void deletesUser() throws Exception {
         var adminToken = adminToken();
         var savedUser = saveUser("delete@google.com", null, null, "secret");
@@ -235,27 +249,30 @@ class UserControllerTest extends ControllerTestSupport {
     }
 
     @Test
-    void forbidsUpdatingAnotherUser() throws Exception {
+    void updatesAnotherUser() throws Exception {
         saveUser("user1@example.com", null, null, "secret123");
         var anotherUser = saveUser("user2@example.com", null, null, "secret123");
         var token = loginAs("user1@example.com", "secret123");
 
         performJson(put("/api/users/{id}", anotherUser.getId()), token, """
                     {
-                      "firstName": "Hacker"
+                      "firstName": "Updated"
                     }
                     """)
-            .andExpect(status().isForbidden());
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.firstName").value("Updated"));
     }
 
     @Test
-    void forbidsDeletingAnotherUser() throws Exception {
+    void deletesAnotherUser() throws Exception {
         saveUser("user1@example.com", null, null, "secret123");
         var anotherUser = saveUser("user2@example.com", null, null, "secret123");
         var token = loginAs("user1@example.com", "secret123");
 
         performAuthorized(delete("/api/users/{id}", anotherUser.getId()), token)
-            .andExpect(status().isForbidden());
+            .andExpect(status().isNoContent());
+
+        org.assertj.core.api.Assertions.assertThat(userRepository.findById(anotherUser.getId())).isEmpty();
     }
 
     private User saveUser(String email, String firstName, String lastName, String password) {
