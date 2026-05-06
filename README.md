@@ -8,3 +8,48 @@
 
 ## Render
 https://java-project-99-e0j8.onrender.com/
+
+## Task Manager
+
+Task Manager is a Spring Boot application for managing tasks. 
+The default development profile uses an in-memory H2 database.
+
+Default account for dev/test:
+
+```text
+Username: hexlet@example.com
+Password: qwerty
+```
+
+## Requirements
+
+- Java 21
+- Gradle wrapper from this repository
+
+## Run locally
+
+Start the application:
+
+```bash
+./gradlew bootRun
+```
+
+Open the web interface:
+
+```text
+http://localhost:8081
+```
+
+## Useful commands
+
+Run tests:
+
+```bash
+./gradlew test
+```
+
+Run checks:
+
+```bash
+./gradlew check
+```

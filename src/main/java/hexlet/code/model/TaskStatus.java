@@ -7,6 +7,7 @@ import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
 import java.time.LocalDateTime;
+import java.util.Objects;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
 
@@ -58,5 +59,21 @@ public class TaskStatus {
 
     public LocalDateTime getUpdatedAt() {
         return updatedAt;
+    }
+
+    @Override
+    public final boolean equals(Object o) {
+        if (this == o) {
+            return true;
+        }
+        if (!(o instanceof TaskStatus taskStatus)) {
+            return false;
+        }
+        return id != null && Objects.equals(id, taskStatus.id);
+    }
+
+    @Override
+    public final int hashCode() {
+        return getClass().hashCode();
     }
 }

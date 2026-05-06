@@ -23,7 +23,7 @@ import org.springframework.test.annotation.DirtiesContext;
 
 @SpringBootTest
 @AutoConfigureMockMvc
-@DirtiesContext(classMode = DirtiesContext.ClassMode.AFTER_EACH_TEST_METHOD)
+@DirtiesContext(classMode = DirtiesContext.ClassMode.BEFORE_EACH_TEST_METHOD)
 class UserControllerTest extends ControllerTestSupport {
 
     @Autowired
@@ -141,10 +141,10 @@ class UserControllerTest extends ControllerTestSupport {
 
     @Test
     void updatesUserPartially() throws Exception {
-        var adminToken = adminToken();
         var savedUser = saveUser("jack@google.com", "Jack", "Jons", "some-password");
+        var token = loginAs("jack@google.com", "some-password");
 
-        performJson(put("/api/users/{id}", savedUser.getId()), adminToken, """
+        performJson(put("/api/users/{id}", savedUser.getId()), token, """
             {
               "email": "jack@yahoo.com",
               "password": "new-password"
@@ -167,10 +167,10 @@ class UserControllerTest extends ControllerTestSupport {
 
     @Test
     void updatesUserNamesOnly() throws Exception {
-        var adminToken = adminToken();
         var savedUser = saveUser("name-only@google.com", "Old", "Name", "secret");
+        var token = loginAs("name-only@google.com", "secret");
 
-        performJson(put("/api/users/{id}", savedUser.getId()), adminToken, """
+        performJson(put("/api/users/{id}", savedUser.getId()), token, """
             {
               "firstName": "New",
               "lastName": "Person"
@@ -202,10 +202,10 @@ class UserControllerTest extends ControllerTestSupport {
 
     @Test
     void deletesUser() throws Exception {
-        var adminToken = adminToken();
         var savedUser = saveUser("delete@google.com", null, null, "secret");
+        var token = loginAs("delete@google.com", "secret");
 
-        performAuthorized(delete("/api/users/{id}", savedUser.getId()), adminToken)
+        performAuthorized(delete("/api/users/{id}", savedUser.getId()), token)
             .andExpect(status().isNoContent());
 
         org.assertj.core.api.Assertions.assertThat(userRepository.findById(savedUser.getId())).isEmpty();
@@ -249,7 +249,7 @@ class UserControllerTest extends ControllerTestSupport {
     }
 
     @Test
-    void updatesAnotherUser() throws Exception {
+    void rejectsUpdatingAnotherUser() throws Exception {
         saveUser("user1@example.com", null, null, "secret123");
         var anotherUser = saveUser("user2@example.com", null, null, "secret123");
         var token = loginAs("user1@example.com", "secret123");
@@ -259,20 +259,22 @@ class UserControllerTest extends ControllerTestSupport {
                       "firstName": "Updated"
                     }
                     """)
-            .andExpect(status().isOk())
-            .andExpect(jsonPath("$.firstName").value("Updated"));
+            .andExpect(status().isForbidden());
+
+        var unchangedUser = userRepository.findById(anotherUser.getId()).orElseThrow();
+        org.assertj.core.api.Assertions.assertThat(unchangedUser.getFirstName()).isNull();
     }
 
     @Test
-    void deletesAnotherUser() throws Exception {
+    void rejectsDeletingAnotherUser() throws Exception {
         saveUser("user1@example.com", null, null, "secret123");
         var anotherUser = saveUser("user2@example.com", null, null, "secret123");
         var token = loginAs("user1@example.com", "secret123");
 
         performAuthorized(delete("/api/users/{id}", anotherUser.getId()), token)
-            .andExpect(status().isNoContent());
+            .andExpect(status().isForbidden());
 
-        org.assertj.core.api.Assertions.assertThat(userRepository.findById(anotherUser.getId())).isEmpty();
+        org.assertj.core.api.Assertions.assertThat(userRepository.findById(anotherUser.getId())).isPresent();
     }
 
     private User saveUser(String email, String firstName, String lastName, String password) {

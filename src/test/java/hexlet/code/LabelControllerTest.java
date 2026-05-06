@@ -24,7 +24,7 @@ import org.springframework.test.annotation.DirtiesContext;
 
 @SpringBootTest
 @AutoConfigureMockMvc
-@DirtiesContext(classMode = DirtiesContext.ClassMode.AFTER_EACH_TEST_METHOD)
+@DirtiesContext(classMode = DirtiesContext.ClassMode.BEFORE_EACH_TEST_METHOD)
 class LabelControllerTest extends ControllerTestSupport {
 
     @Autowired
