@@ -23,8 +23,8 @@ class DomainModelEqualityTest {
         setId(sameIdEntity, 1L);
         setId(anotherIdEntity, 2L);
 
+        assertThat(entity.equals(entity)).isTrue();
         assertThat(entity)
-            .isEqualTo(entity)
             .isEqualTo(sameIdEntity)
             .isNotEqualTo(anotherIdEntity)
             .isNotEqualTo(new Object());
