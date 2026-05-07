@@ -14,6 +14,8 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 @Service
 public class UserService {
 
+    private static final String ADMIN_EMAIL = "hexlet@example.com";
+
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
 
@@ -69,14 +71,24 @@ public class UserService {
         userRepository.delete(user);
     }
 
+    @Transactional(readOnly = true)
+    public boolean canManageUser(Long id, String username) {
+        if (ADMIN_EMAIL.equals(username)) {
+            return true;
+        }
+
+        return userRepository.findById(id)
+            .map(user -> user.getEmail().equals(username))
+            .orElse(false);
+    }
+
     @Transactional
     public void createAdminIfMissing() {
-        var adminEmail = "hexlet@example.com";
-        if (userRepository.existsByEmail(adminEmail)) {
+        if (userRepository.existsByEmail(ADMIN_EMAIL)) {
             return;
         }
         var user = new User();
-        user.setEmail(adminEmail);
+        user.setEmail(ADMIN_EMAIL);
         user.setPassword(passwordEncoder.encode("qwerty"));
         userRepository.save(user);
     }

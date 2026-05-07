@@ -47,14 +47,14 @@ public class UserController {
     }
 
     @PutMapping("/{id}")
-    @PreAuthorize("#id == principal.id")
+    @PreAuthorize("@userService.canManageUser(#id, authentication.name)")
     public UserResponse update(@PathVariable Long id, @Valid @RequestBody UserUpdateRequest request) {
         return userService.updateUser(id, request);
     }
 
     @DeleteMapping("/{id}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
-    @PreAuthorize("#id == principal.id")
+    @PreAuthorize("@userService.canManageUser(#id, authentication.name)")
     public void delete(@PathVariable Long id) {
         userService.deleteUser(id);
     }
